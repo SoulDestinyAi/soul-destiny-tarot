@@ -1,167 +1,214 @@
-import React, { useState } from 'react';
-import { Shuffle, Heart, Star, DollarSign, Briefcase, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Star, Moon, Sun, Sparkles, Gem } from 'lucide-react';
 
 const SoulDestinyTarot = () => {
-  const [selectedCards, setSelectedCards] = useState([]);
-  const [reading, setReading] = useState('');
-  const [readingType, setReadingType] = useState('general');
+  const [question, setQuestion] = useState('');
+  const [showCards, setShowCards] = useState(false);
+  const [selectedCard, setSelectedCard] = useState(null);
+  const [hoveredCard, setHoveredCard] = useState(null);
+  const [theme, setTheme] = useState(0);
+  const [cardReading, setCardReading] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [showReading, setShowReading] = useState(false);
+  const [shuffledCards, setShuffledCards] = useState([]);
 
-  // Complete 78-card tarot deck with meanings
-  const tarotCards = [
-    // Major Arcana
-    { id: 0, name: "The Fool", suit: "Major Arcana", meaning: "new beginnings, innocence, adventure, taking a leap of faith" },
-    { id: 1, name: "The Magician", suit: "Major Arcana", meaning: "manifestation, willpower, creation, having the tools needed" },
-    { id: 2, name: "The High Priestess", suit: "Major Arcana", meaning: "intuition, mystery, inner wisdom, spiritual insight" },
-    { id: 3, name: "The Empress", suit: "Major Arcana", meaning: "fertility, nurturing, abundance, creative expression" },
-    { id: 4, name: "The Emperor", suit: "Major Arcana", meaning: "authority, structure, leadership, fatherly guidance" },
-    { id: 5, name: "The Hierophant", suit: "Major Arcana", meaning: "tradition, spiritual guidance, conformity, education" },
-    { id: 6, name: "The Lovers", suit: "Major Arcana", meaning: "love, harmony, relationships, important choices" },
-    { id: 7, name: "The Chariot", suit: "Major Arcana", meaning: "determination, control, victory, moving forward" },
-    { id: 8, name: "Strength", suit: "Major Arcana", meaning: "inner strength, courage, patience, gentle power" },
-    { id: 9, name: "The Hermit", suit: "Major Arcana", meaning: "soul searching, inner guidance, solitude, seeking truth" },
-    { id: 10, name: "Wheel of Fortune", suit: "Major Arcana", meaning: "change, cycles, destiny, good fortune" },
-    { id: 11, name: "Justice", suit: "Major Arcana", meaning: "fairness, truth, cause and effect, law" },
-    { id: 12, name: "The Hanged Man", suit: "Major Arcana", meaning: "suspension, letting go, sacrifice, new perspective" },
-    { id: 13, name: "Death", suit: "Major Arcana", meaning: "transformation, endings, change, renewal" },
-    { id: 14, name: "Temperance", suit: "Major Arcana", meaning: "balance, moderation, patience, harmony" },
-    { id: 15, name: "The Devil", suit: "Major Arcana", meaning: "bondage, materialism, ignorance, breaking free" },
-    { id: 16, name: "The Tower", suit: "Major Arcana", meaning: "sudden change, upheaval, awakening, liberation" },
-    { id: 17, name: "The Star", suit: "Major Arcana", meaning: "hope, inspiration, healing, renewal" },
-    { id: 18, name: "The Moon", suit: "Major Arcana", meaning: "illusion, fear, anxiety, intuition, dreams" },
-    { id: 19, name: "The Sun", suit: "Major Arcana", meaning: "joy, success, vitality, enlightenment" },
-    { id: 20, name: "Judgement", suit: "Major Arcana", meaning: "rebirth, awakening, forgiveness, evaluation" },
-    { id: 21, name: "The World", suit: "Major Arcana", meaning: "completion, accomplishment, fulfillment, wholeness" },
-
-    // Cups (Emotions/Love)
-    { id: 22, name: "Ace of Cups", suit: "Cups", meaning: "new love, emotional awakening, creativity, intuition" },
-    { id: 23, name: "Two of Cups", suit: "Cups", meaning: "partnership, mutual attraction, unity, love" },
-    { id: 24, name: "Three of Cups", suit: "Cups", meaning: "celebration, friendship, creativity, community" },
-    { id: 25, name: "Four of Cups", suit: "Cups", meaning: "apathy, contemplation, missed opportunities" },
-    { id: 26, name: "Five of Cups", suit: "Cups", meaning: "loss, grief, disappointment, mourning" },
-    { id: 27, name: "Six of Cups", suit: "Cups", meaning: "nostalgia, childhood, innocence, generosity" },
-    { id: 28, name: "Seven of Cups", suit: "Cups", meaning: "choices, wishful thinking, illusion, fantasy" },
-    { id: 29, name: "Eight of Cups", suit: "Cups", meaning: "abandonment, withdrawal, seeking higher purpose" },
-    { id: 30, name: "Nine of Cups", suit: "Cups", meaning: "contentment, satisfaction, emotional fulfillment" },
-    { id: 31, name: "Ten of Cups", suit: "Cups", meaning: "happiness, harmony, emotional fulfillment" },
-    { id: 32, name: "Page of Cups", suit: "Cups", meaning: "creative opportunities, intuitive messages, curiosity" },
-    { id: 33, name: "Knight of Cups", suit: "Cups", meaning: "romance, charm, being in love, following the heart" },
-    { id: 34, name: "Queen of Cups", suit: "Cups", meaning: "emotional nurturing, compassion, calm, comfort" },
-    { id: 35, name: "King of Cups", suit: "Cups", meaning: "emotional balance, compassion, diplomacy" },
-
-    // Wands (Career/Passion)
-    { id: 36, name: "Ace of Wands", suit: "Wands", meaning: "inspiration, creative spark, new opportunities" },
-    { id: 37, name: "Two of Wands", suit: "Wands", meaning: "planning, making decisions, leaving comfort zone" },
-    { id: 38, name: "Three of Wands", suit: "Wands", meaning: "expansion, foresight, overseas opportunities" },
-    { id: 39, name: "Four of Wands", suit: "Wands", meaning: "celebration, harmony, home, marriage" },
-    { id: 40, name: "Five of Wands", suit: "Wands", meaning: "conflict, disagreements, competition, tension" },
-    { id: 41, name: "Six of Wands", suit: "Wands", meaning: "victory, public recognition, progress, self-confidence" },
-    { id: 42, name: "Seven of Wands", suit: "Wands", meaning: "challenge, perseverance, maintaining control" },
-    { id: 43, name: "Eight of Wands", suit: "Wands", meaning: "speed, rapid action, movement, quick decisions" },
-    { id: 44, name: "Nine of Wands", suit: "Wands", meaning: "resilience, persistence, last stand, boundaries" },
-    { id: 45, name: "Ten of Wands", suit: "Wands", meaning: "burden, extra responsibility, hard work, completion" },
-    { id: 46, name: "Page of Wands", suit: "Wands", meaning: "inspiration, ideas, discovery, limitless potential" },
-    { id: 47, name: "Knight of Wands", suit: "Wands", meaning: "energy, passion, adventure, impulsiveness" },
-    { id: 48, name: "Queen of Wands", suit: "Wands", meaning: "courage, confidence, independence, social butterfly" },
-    { id: 49, name: "King of Wands", suit: "Wands", meaning: "leadership, vision, honor, determination" },
-
-    // Pentacles (Money/Material)
-    { id: 50, name: "Ace of Pentacles", suit: "Pentacles", meaning: "new financial opportunity, manifestation, abundance" },
-    { id: 51, name: "Two of Pentacles", suit: "Pentacles", meaning: "multiple priorities, time management, adaptability" },
-    { id: 52, name: "Three of Pentacles", suit: "Pentacles", meaning: "teamwork, collaboration, learning, implementation" },
-    { id: 53, name: "Four of Pentacles", suit: "Pentacles", meaning: "saving money, security, conservatism, scarcity" },
-    { id: 54, name: "Five of Pentacles", suit: "Pentacles", meaning: "financial loss, poverty, lack mindset, isolation" },
-    { id: 55, name: "Six of Pentacles", suit: "Pentacles", meaning: "generosity, charity, sharing wealth, community" },
-    { id: 56, name: "Seven of Pentacles", suit: "Pentacles", meaning: "assessment, hard work, perseverance, investment" },
-    { id: 57, name: "Eight of Pentacles", suit: "Pentacles", meaning: "apprenticeship, repetitive tasks, mastery, skill development" },
-    { id: 58, name: "Nine of Pentacles", suit: "Pentacles", meaning: "abundance, luxury, self-reliance, financial independence" },
-    { id: 59, name: "Ten of Pentacles", suit: "Pentacles", meaning: "wealth, financial security, family, long-term success" },
-    { id: 60, name: "Page of Pentacles", suit: "Pentacles", meaning: "learning, studying, new ideas, financial opportunities" },
-    { id: 61, name: "Knight of Pentacles", suit: "Pentacles", meaning: "hard work, productivity, routine, conservatism" },
-    { id: 62, name: "Queen of Pentacles", suit: "Pentacles", meaning: "practical, homely, motherly, down-to-earth" },
-    { id: 63, name: "King of Pentacles", suit: "Pentacles", meaning: "financial success, leadership, security, generosity" },
-
-    // Swords (Mind/Challenges)
-    { id: 64, name: "Ace of Swords", suit: "Swords", meaning: "breakthroughs, new ideas, mental clarity, communication" },
-    { id: 65, name: "Two of Swords", suit: "Swords", meaning: "difficult decisions, weighing options, indecision" },
-    { id: 66, name: "Three of Swords", suit: "Swords", meaning: "heartbreak, emotional pain, sorrow, grief" },
-    { id: 67, name: "Four of Swords", suit: "Swords", meaning: "rest, relaxation, meditation, contemplation" },
-    { id: 68, name: "Five of Swords", suit: "Swords", meaning: "conflict, disagreements, competition, defeat" },
-    { id: 69, name: "Six of Swords", suit: "Swords", meaning: "transition, change, rite of passage, releasing baggage" },
-    { id: 70, name: "Seven of Swords", suit: "Swords", meaning: "betrayal, deception, getting away with something" },
-    { id: 71, name: "Eight of Swords", suit: "Swords", meaning: "negative thinking, restricted freedom, imprisonment" },
-    { id: 72, name: "Nine of Swords", suit: "Swords", meaning: "anxiety, worry, fear, depression, nightmares" },
-    { id: 73, name: "Ten of Swords", suit: "Swords", meaning: "painful endings, deep wounds, betrayal, loss" },
-    { id: 74, name: "Page of Swords", suit: "Swords", meaning: "new ideas, curiosity, thirst for knowledge, communication" },
-    { id: 75, name: "Knight of Swords", suit: "Swords", meaning: "ambitious, action-oriented, driven to succeed" },
-    { id: 76, name: "Queen of Swords", suit: "Swords", meaning: "independent, unbiased judgment, clear boundaries" },
-    { id: 77, name: "King of Swords", suit: "Swords", meaning: "mental clarity, intellectual power, authority, truth" }
+  // Sunbreeze theme variations
+  const themes = [
+    { bg: 'from-yellow-200 via-orange-200 to-red-200', accent: 'orange' },
+    { bg: 'from-blue-200 via-cyan-200 to-teal-200', accent: 'cyan' },
+    { bg: 'from-pink-200 via-purple-200 to-indigo-200', accent: 'purple' },
+    { bg: 'from-green-200 via-emerald-200 to-teal-200', accent: 'emerald' },
+    { bg: 'from-rose-200 via-pink-200 to-orange-200', accent: 'rose' }
   ];
 
-  // Reading types
-  const readingTypes = {
-    general: { name: "General Life", icon: Star, color: "from-purple-400 to-pink-400" },
-    love: { name: "Love & Romance", icon: Heart, color: "from-pink-400 to-red-400" },
-    career: { name: "Career & Success", icon: Briefcase, color: "from-blue-400 to-green-400" },
-    money: { name: "Money & Finance", icon: DollarSign, color: "from-green-400 to-yellow-400" }
+  const currentTheme = themes[theme];
+
+  // Tarot card names
+  const tarotCards = [
+    "The Fool", "The Magician", "The High Priestess", "The Empress", "The Emperor",
+    "The Hierophant", "The Lovers", "The Chariot", "Strength", "The Hermit",
+    "Wheel of Fortune", "Justice", "The Hanged Man", "Death", "Temperance",
+    "The Devil", "The Tower", "The Star", "The Moon", "The Sun",
+    "Judgement", "The World", "Ace of Wands", "Two of Wands", "Three of Wands",
+    "Four of Wands", "Five of Wands", "Six of Wands", "Seven of Wands", "Eight of Wands",
+    "Nine of Wands", "Ten of Wands", "Page of Wands", "Knight of Wands", "Queen of Wands",
+    "King of Wands", "Ace of Cups", "Two of Cups", "Three of Cups", "Four of Cups",
+    "Five of Cups", "Six of Cups", "Seven of Cups", "Eight of Cups", "Nine of Cups",
+    "Ten of Cups", "Page of Cups", "Knight of Cups", "Queen of Cups", "King of Cups",
+    "Ace of Swords", "Two of Swords", "Three of Swords", "Four of Swords", "Five of Swords",
+    "Six of Swords", "Seven of Swords", "Eight of Swords", "Nine of Swords", "Ten of Swords",
+    "Page of Swords", "Knight of Swords", "Queen of Swords", "King of Swords", "Ace of Pentacles",
+    "Two of Pentacles", "Three of Pentacles", "Four of Pentacles", "Five of Pentacles", "Six of Pentacles",
+    "Seven of Pentacles", "Eight of Pentacles", "Nine of Pentacles", "Ten of Pentacles", "Page of Pentacles",
+    "Knight of Pentacles", "Queen of Pentacles", "King of Pentacles"
+  ];
+
+  // Fisher-Yates shuffle algorithm
+  const shuffleArray = (array) => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
   };
 
-  // Shuffle deck and select cards
-  const shuffleDeck = () => {
-    const shuffled = [...tarotCards].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 3); // Always draw 3 cards
+  // Set random theme on first load
+  useEffect(() => {
+    setTheme(Math.floor(Math.random() * themes.length));
+    setShuffledCards(shuffleArray(tarotCards));
+  }, []);
+
+  // Comprehensive tarot card meanings database with enhanced meanings
+  const cardMeanings = {
+    "The Fool": {
+      meaning: "New beginnings, spontaneity, and taking a leap of faith. This card suggests you're at the start of an exciting journey with unlimited potential.",
+      guidance: "Trust your instincts and embrace the unknown. Sometimes the best adventures begin when we step outside our comfort zone with an open heart."
+    },
+    "The Magician": {
+      meaning: "Personal power, manifestation, and having all the tools you need. You possess the ability to turn your dreams into reality.",
+      guidance: "Focus your energy and take action. You have everything within you to achieve your goals - now is the time to make it happen."
+    },
+    "The High Priestess": {
+      meaning: "Intuition, inner wisdom, and trusting your subconscious mind. Hidden knowledge and spiritual insight are available to you.",
+      guidance: "Listen to your inner voice and pay attention to your dreams and intuition. The answers you seek lie within your deeper knowing."
+    },
+    "The Empress": {
+      meaning: "Creativity, abundance, and nurturing energy. This card represents fertility, growth, and the power of creation in all its forms.",
+      guidance: "Embrace your creative side and nurture what matters to you. Allow yourself to receive abundance and share your gifts with the world."
+    },
+    "The Emperor": {
+      meaning: "Authority, structure, and taking control of your life. This card represents leadership, stability, and the power to create order.",
+      guidance: "Take charge of your situation with confidence. Create structure and boundaries that support your goals and well-being."
+    },
+    "The Hierophant": {
+      meaning: "Tradition, spiritual guidance, and seeking wisdom from established sources. This card suggests learning from teachers or mentors.",
+      guidance: "Consider seeking advice from someone with experience. Sometimes the old ways contain wisdom that can guide you forward."
+    },
+    "The Lovers": {
+      meaning: "Love, relationships, and important choices. This card represents harmony, connection, and decisions that affect your heart.",
+      guidance: "Follow your heart while using your head. Important relationships and choices require both love and wisdom to navigate successfully."
+    },
+    "The Chariot": {
+      meaning: "Determination, willpower, and moving forward with confidence. You have the strength to overcome obstacles and achieve victory.",
+      guidance: "Stay focused on your goals and maintain your determination. You have the power to steer your life in the direction you want."
+    },
+    "Strength": {
+      meaning: "Inner strength, courage, and gentle power. This card represents overcoming challenges through patience and compassion.",
+      guidance: "Approach challenges with both strength and kindness. Your gentle persistence will overcome what force cannot."
+    },
+    "The Hermit": {
+      meaning: "Soul searching, inner guidance, and seeking truth. This card suggests a time for introspection and spiritual seeking.",
+      guidance: "Take time for quiet reflection and meditation. The answers you seek will come through inner contemplation and patience."
+    },
+    "Wheel of Fortune": {
+      meaning: "Cycles of change, destiny, and turning points. This card represents the natural ups and downs of life and new opportunities.",
+      guidance: "Embrace change as a natural part of life. What seems like an ending may actually be a new beginning in disguise."
+    },
+    "Justice": {
+      meaning: "Balance, fairness, and truth. This card represents the need for honest assessment and making decisions based on what's right.",
+      guidance: "Seek truth and fairness in all your dealings. Consider all sides of the situation before making important decisions."
+    },
+    "The Hanged Man": {
+      meaning: "Patience, surrender, and seeing things from a new perspective. Sometimes we need to let go to move forward.",
+      guidance: "Practice patience and try viewing your situation from a different angle. Sometimes the best action is to wait and reflect."
+    },
+    "Death": {
+      meaning: "Transformation, endings, and new beginnings. This card represents necessary change and the cycle of renewal.",
+      guidance: "Embrace transformation and let go of what no longer serves you. Every ending creates space for something new and better."
+    },
+    "Temperance": {
+      meaning: "Balance, moderation, and harmony. This card suggests finding the middle path and blending different aspects of your life.",
+      guidance: "Seek balance and avoid extremes. The best solutions often come from combining different approaches with patience."
+    },
+    "The Devil": {
+      meaning: "Temptation, bondage, and breaking free from limitations. This card represents recognizing what holds you back.",
+      guidance: "Examine what habits or beliefs are limiting you. You have the power to break free from anything that doesn't serve your highest good."
+    },
+    "The Tower": {
+      meaning: "Sudden change, revelation, and breaking down old structures. This card represents necessary destruction before rebuilding.",
+      guidance: "Trust that sudden changes, though challenging, are clearing the way for something better. Build your new foundation on solid ground."
+    },
+    "The Star": {
+      meaning: "Hope, inspiration, and spiritual guidance. This card represents healing, renewal, and connection to your higher purpose.",
+      guidance: "Keep hope alive and trust in your dreams. You are being guided toward healing and the fulfillment of your highest aspirations."
+    },
+    "The Moon": {
+      meaning: "Intuition, illusions, and navigating uncertainty. This card suggests things may not be as they seem on the surface.",
+      guidance: "Trust your intuition and look beyond surface appearances. Take time to understand the deeper truth of your situation."
+    },
+    "The Sun": {
+      meaning: "Joy, success, and positive energy. This card represents happiness, vitality, and the fulfillment of your goals.",
+      guidance: "Embrace optimism and celebrate your achievements. Your positive energy attracts more good things into your life."
+    },
+    "Judgement": {
+      meaning: "Rebirth, calling, and spiritual awakening. This card represents a time of evaluation and stepping into your true purpose.",
+      guidance: "Listen to your inner calling and be willing to make necessary changes. You are being called to a higher purpose."
+    },
+    "The World": {
+      meaning: "Completion, accomplishment, and fulfillment. This card represents the successful end of a cycle and integration of lessons learned.",
+      guidance: "Celebrate your achievements and prepare for new adventures. You have completed an important phase of your journey."
+    }
   };
 
-  // Enhanced reading generation with Claude API
-  const generateReading = async (cards, questionType) => {
+  // Generate generic suit meanings for Minor Arcana with enhanced descriptions
+  const generateSuitMeaning = (cardName) => {
+    if (cardName.includes('Wands')) {
+      return {
+        meaning: "This card relates to creativity, passion, and taking action. It suggests energy and enthusiasm for pursuing your goals with determination and fire.",
+        guidance: "Channel your creative energy into meaningful action. Your passion and determination will lead you to success. Trust your creative instincts."
+      };
+    } else if (cardName.includes('Cups')) {
+      return {
+        meaning: "This card relates to emotions, relationships, and intuition. It suggests matters of the heart and spiritual connection with deep emotional significance.",
+        guidance: "Trust your feelings and nurture your relationships. Your emotional intelligence will guide you to the right path. Honor your heart's wisdom."
+      };
+    } else if (cardName.includes('Swords')) {
+      return {
+        meaning: "This card relates to thoughts, communication, and mental clarity. It suggests the power of clear thinking and honest communication in challenging times.",
+        guidance: "Use your intellect and communicate clearly. Sometimes the truth, though challenging, is exactly what's needed. Think before you act."
+      };
+    } else if (cardName.includes('Pentacles')) {
+      return {
+        meaning: "This card relates to material matters, resources, and practical concerns. It suggests focusing on tangible goals and building lasting foundations.",
+        guidance: "Take a practical approach and focus on building solid foundations. Your hard work will create lasting abundance. Be patient with material progress."
+      };
+    }
+    return cardMeanings["The Fool"]; // Default fallback
+  };
+
+  // Enhanced reading generation with Claude API integration
+  const generateReading = async (cardName, userQuestion) => {
     setIsLoading(true);
     
     try {
-      // Prepare card information for Claude
-      const cardDetails = cards.map((card, index) => {
-        const positions = {
-          general: ["Past/Foundation", "Present/Current Energy", "Future/Outcome"],
-          love: ["Your Heart", "Love Energy", "Relationship Path"],
-          career: ["Current Position", "Opportunities/Challenges", "Career Outcome"],
-          money: ["Current Financial State", "Money Flow Energy", "Financial Future"]
-        };
-        
-        return {
-          position: positions[questionType][index],
-          card: card.name,
-          suit: card.suit,
-          meaning: card.meaning
-        };
-      });
-
-      // Create detailed prompt for Claude
-      const prompt = `You are Astrologer Chanakk Gupta, a professional tarot reader providing authentic spiritual guidance through the Soul Destiny Tarot app.
+      // Get basic card meaning for context
+      const cardData = cardMeanings[cardName] || generateSuitMeaning(cardName);
+      
+      // Try Claude API first for personalized reading
+      const prompt = `You are Astrologer Chanakk Gupta, a professional tarot reader providing authentic spiritual guidance through the Soul Destiny Tarot app. 
 
 READING REQUEST:
-- Reading Type: ${questionType.charAt(0).toUpperCase() + questionType.slice(1)} Reading
-- Cards Drawn: 3 cards in spread
+- Card Drawn: "${cardName}"
+- User's Question: "${userQuestion}"
+- Traditional Card Meaning: ${cardData.meaning}
 
-CARDS AND POSITIONS:
-${cardDetails.map((card, i) => 
-  `${i + 1}. Position: ${card.position}
-     Card: ${card.card} (${card.suit})
-     Traditional Meaning: ${card.meaning}`
-).join('\n\n')}
+Please provide a personalized tarot reading that:
+1. References the traditional meaning of ${cardName}
+2. Connects the card's energy to the user's specific question
+3. Offers practical, actionable spiritual guidance
+4. Maintains a warm, professional tone befitting your expertise
+5. Provides hope and empowerment
 
-Please provide a personalized, authentic tarot reading that:
-1. Acknowledges each card's traditional meaning and position significance
-2. Weaves the three cards together into a cohesive spiritual message
-3. Provides specific, actionable guidance based on the card combination
-4. Uses warm, professional spiritual language befitting your expertise
-5. Offers hope, empowerment, and practical wisdom
-6. Maintains the mystical yet grounded approach of a professional astrologer
+Respond in the following JSON format:
+{
+  "cardMeaning": "Personalized interpretation of ${cardName} in relation to their question (2-3 sentences)",
+  "guidance": "Specific spiritual guidance and practical advice based on this card and their question (2-3 sentences)"
+}
 
-Format as a flowing, conversational reading (not bullet points), approximately 250-300 words. Begin with a brief spiritual greeting, interpret each card in its position context, then synthesize the overall message with practical guidance and encouragement.
+Keep the language accessible, supportive, and insightful. Avoid overly mystical language while maintaining spiritual depth.
 
-Remember: You are known for combining ancient wisdom with practical modern guidance, helping people navigate their soul's destiny with clarity and compassion.`;
+Your entire response MUST be a single, valid JSON object. DO NOT include any text outside of the JSON structure, including backticks.`;
 
-      // Call Claude API
       const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
@@ -169,7 +216,7 @@ Remember: You are known for combining ancient wisdom with practical modern guida
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
+          max_tokens: 800,
           messages: [
             { role: "user", content: prompt }
           ]
@@ -181,240 +228,307 @@ Remember: You are known for combining ancient wisdom with practical modern guida
       }
 
       const data = await response.json();
-      const claudeReading = data.content[0].text;
+      let responseText = data.content[0].text;
       
-      setReading(claudeReading);
+      // Clean up response - remove any markdown formatting
+      responseText = responseText.replace(/```json\s?/g, "").replace(/```\s?/g, "").trim();
+      
+      const claudeReading = JSON.parse(responseText);
+      setIsLoading(false);
+      return claudeReading;
       
     } catch (error) {
-      console.error("Claude API error:", error);
+      console.error('Claude API error, using enhanced fallback:', error);
       
-      // Enhanced fallback reading
-      const enhancedReading = generateEnhancedReading(cards, questionType);
-      setReading(enhancedReading);
-    } finally {
-      setIsLoading(false);
-      setShowReading(true);
+      // Enhanced fallback with personalized context
+      setTimeout(() => setIsLoading(false), 1500); // Simulate loading for better UX
+      
+      const cardData = cardMeanings[cardName] || generateSuitMeaning(cardName);
+      
+      // Create more personalized fallback based on question context
+      let personalizedMeaning = cardData.meaning;
+      let personalizedGuidance = cardData.guidance;
+      
+      // Add question-specific context if question contains certain keywords
+      if (userQuestion.toLowerCase().includes('love') || userQuestion.toLowerCase().includes('relationship')) {
+        personalizedMeaning += " In matters of the heart, this card suggests emotional growth and deeper understanding.";
+        personalizedGuidance += " Pay special attention to how your emotions guide you in relationships.";
+      } else if (userQuestion.toLowerCase().includes('work') || userQuestion.toLowerCase().includes('career') || userQuestion.toLowerCase().includes('job')) {
+        personalizedMeaning += " In your professional life, this energy indicates important developments and opportunities for growth.";
+        personalizedGuidance += " Focus on how this insight can advance your career and professional relationships.";
+      } else if (userQuestion.toLowerCase().includes('money') || userQuestion.toLowerCase().includes('financial')) {
+        personalizedMeaning += " Regarding financial matters, this card points to practical decisions and material stability.";
+        personalizedGuidance += " Consider how this wisdom applies to your financial planning and resource management.";
+      }
+      
+      return {
+        cardMeaning: personalizedMeaning,
+        guidance: personalizedGuidance
+      };
     }
   };
 
-  // Enhanced fallback function
-  const generateEnhancedReading = (cards, questionType) => {
-    const readingIntros = {
-      general: "🔮 The cosmic energies reveal your life's path through these sacred cards...",
-      love: "💖 The universe speaks of matters of the heart through divine wisdom...",
-      career: "⭐ Your professional journey unfolds through celestial guidance...",
-      money: "💰 The material realm and abundance energies illuminate your path..."
+  const handleQuestionSubmit = () => {
+    if (question.trim()) {
+      // Shuffle cards when question is submitted
+      setShuffledCards(shuffleArray(tarotCards));
+      setShowCards(true);
+    }
+  };
+
+  const handleCardClick = async (cardIndex) => {
+    const cardName = shuffledCards[cardIndex];
+    setSelectedCard({ name: cardName, index: cardIndex });
+    
+    // Generate reading with Claude API
+    const reading = await generateReading(cardName, question);
+    setCardReading(reading);
+  };
+
+  const resetReading = () => {
+    setQuestion('');
+    setShowCards(false);
+    setSelectedCard(null);
+    setCardReading(null);
+    setIsLoading(false);
+    setTheme(Math.floor(Math.random() * themes.length));
+    setShuffledCards(shuffleArray(tarotCards));
+  };
+
+  const getCardEmoji = (cardName) => {
+    const emojiMap = {
+      "The Fool": "🃏", "The Magician": "🎩", "The High Priestess": "🔮", "The Empress": "👑", "The Emperor": "⚔️",
+      "The Hierophant": "🏛️", "The Lovers": "💕", "The Chariot": "🏇", "Strength": "🦁", "The Hermit": "🏮",
+      "Wheel of Fortune": "🎡", "Justice": "⚖️", "The Hanged Man": "🙃", "Death": "🦋", "Temperance": "🧘",
+      "The Devil": "😈", "The Tower": "🗼", "The Star": "⭐", "The Moon": "🌙", "The Sun": "☀️",
+      "Judgement": "📯", "The World": "🌍"
     };
-
-    const positions = {
-      general: ["Past/Foundation", "Present Energy", "Future Outcome"],
-      love: ["Your Heart", "Love Energy", "Relationship Path"],
-      career: ["Current Position", "Opportunities/Challenges", "Career Outcome"],
-      money: ["Current Financial State", "Money Flow Energy", "Financial Future"]
-    };
-
-    let reading = `${readingIntros[questionType]}\n\n`;
     
-    cards.forEach((card, index) => {
-      reading += `**${positions[questionType][index]}: ${card.name}**\n`;
-      reading += `${card.meaning.charAt(0).toUpperCase() + card.meaning.slice(1)}. `;
-      reading += `This card illuminates the energy of ${positions[questionType][index].toLowerCase()}, guiding you toward greater understanding.\n\n`;
-    });
-
-    reading += `**Divine Guidance:**\n`;
-    reading += `The sacred trinity of cards reveals a profound journey. ${cards[0].name} establishes your foundation, showing that ${cards[0].meaning.split(',')[0]} has shaped your path. `;
-    reading += `${cards[1].name} illuminates your present moment, where ${cards[1].meaning.split(',')[0]} is your current focus. `;
-    reading += `Finally, ${cards[2].name} promises that ${cards[2].meaning.split(',')[0]} awaits in your future.\n\n`;
-    
-    reading += `Trust in the cosmic timing of your journey. The universe conspires to support your highest good, and these cards are a reminder that you possess the inner wisdom to navigate any challenge with grace and strength.\n\n`;
-    reading += `✨ **Blessings and divine light upon your path** ✨\n`;
-    reading += `*- Astrologer Chanakk Gupta*`;
-
-    return reading;
+    if (emojiMap[cardName]) return emojiMap[cardName];
+    if (cardName.includes('Wands')) return '🔥';
+    if (cardName.includes('Cups')) return '💧';
+    if (cardName.includes('Swords')) return '⚔️';
+    if (cardName.includes('Pentacles')) return '💰';
+    return '✨';
   };
 
-  // Draw cards function
-  const drawCards = () => {
-    if (isLoading) return;
+  const StarField = () => (
+    <div className="fixed inset-0 overflow-hidden pointer-events-none">
+      {[...Array(30)].map((_, i) => (
+        <div
+          key={i}
+          className="absolute animate-pulse"
+          style={{
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            animationDelay: `${Math.random() * 3}s`,
+            animationDuration: `${2 + Math.random() * 2}s`
+          }}
+        >
+          <Star className="text-amber-600 opacity-70" size={Math.random() * 6 + 3} />
+        </div>
+      ))}
+    </div>
+  );
+
+  // Create card rows - mobile responsive (fewer cards per row on mobile)
+  const createCardRows = () => {
+    const rows = [];
+    const cardsPerRow = window.innerWidth < 640 ? 6 : 13; // 6 cards per row on mobile, 13 on desktop
+    const totalRows = Math.ceil(shuffledCards.length / cardsPerRow);
     
-    const newCards = shuffleDeck();
-    setSelectedCards(newCards);
-    generateReading(newCards, readingType);
+    for (let i = 0; i < totalRows; i++) {
+      const startIndex = i * cardsPerRow;
+      const endIndex = startIndex + cardsPerRow;
+      const rowCards = shuffledCards.slice(startIndex, endIndex);
+      rows.push(rowCards);
+    }
+    return rows;
   };
 
-  // Start new reading
-  const startNewReading = () => {
-    setSelectedCards([]);
-    setReading('');
-    setShowReading(false);
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 text-white">
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-yellow-400 to-pink-400 bg-clip-text text-transparent">
-            🔮 Soul Destiny Tarot
-          </h1>
-          <p className="text-2xl text-purple-200 mb-2">by Astrologer Chanakk Gupta</p>
-          <p className="text-purple-300">Authentic Spiritual Guidance Through Ancient Wisdom</p>
+  if (selectedCard && (cardReading || isLoading)) {
+    return (
+      <div className={`min-h-screen bg-gradient-to-br ${currentTheme.bg} text-gray-800 relative overflow-hidden`}>
+        <StarField />
+        
+        {/* Fixed Header - Mobile Optimized */}
+        <div className="fixed top-0 left-0 right-0 z-50 bg-white bg-opacity-90 backdrop-blur-sm shadow-lg">
+          <div className="text-center py-3 px-4">
+            <div className="flex items-center justify-center gap-2">
+              <Gem className="text-amber-600" size={20} />
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+                SOUL DESTINY TAROT
+              </h1>
+              <Gem className="text-amber-600" size={20} />
+            </div>
+            <p className="text-xs text-gray-600 mt-1">by ASTROLOGER CHANAKK GUPTA</p>
+          </div>
         </div>
 
-        {!showReading ? (
-          <div className="max-w-4xl mx-auto">
-            {/* Reading Type Selection */}
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold mb-6 text-center">Choose Your Sacred Reading</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {Object.entries(readingTypes).map(([key, type]) => {
-                  const Icon = type.icon;
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => setReadingType(key)}
-                      className={`p-6 rounded-xl border-2 transition-all transform hover:scale-105 ${
-                        readingType === key
-                          ? 'border-yellow-400 bg-gradient-to-r shadow-lg shadow-yellow-400/25'
-                          : 'border-purple-400 hover:border-pink-400 bg-white/5'
-                      } ${type.color} ${readingType === key ? 'from-yellow-400/20 to-yellow-600/20' : ''}`}
-                    >
-                      <Icon className="w-12 h-12 mx-auto mb-3" />
-                      <div className="text-lg font-bold">{type.name}</div>
-                      <div className="text-sm text-purple-300 mt-2">
-                        {key === 'general' && 'Past • Present • Future'}
-                        {key === 'love' && 'Heart • Energy • Path'}
-                        {key === 'career' && 'Position • Challenge • Outcome'}
-                        {key === 'money' && 'Current • Flow • Future'}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+        {/* Card Reading Content - Mobile Optimized */}
+        <div className="pt-20 pb-28 px-3 sm:px-4 max-w-4xl mx-auto relative z-10">
+          {isLoading ? (
+            <div className="text-center mt-8 sm:mt-16">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-b-2 border-amber-600 mb-4"></div>
+              <p className="text-lg sm:text-xl text-amber-700">Channeling divine wisdom...</p>
             </div>
+          ) : (
+            <>
+              {/* Card Display - Mobile Optimized */}
+              <div className="text-center mb-6 sm:mb-8">
+                <div className="inline-block bg-gradient-to-br from-white to-amber-50 p-4 sm:p-6 md:p-8 rounded-lg shadow-2xl border-4 border-amber-400 max-w-xs sm:max-w-sm mx-auto">
+                  <div className="text-3xl sm:text-4xl md:text-6xl mb-3 sm:mb-4">{getCardEmoji(selectedCard.name)}</div>
+                  <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-amber-800 mb-2 px-2">{selectedCard.name}</h2>
+                </div>
+              </div>
 
-            {/* Draw Cards Section */}
-            <div className="text-center mb-8">
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-purple-400/50">
-                <h3 className="text-xl font-semibold mb-4">
-                  Ready for Your {readingTypes[readingType].name} Reading?
-                </h3>
-                <p className="text-purple-200 mb-6">
-                  Focus your intention and let the universe guide you to the cards meant for your highest good.
-                </p>
-                
+              {/* Your Question - Mobile Optimized */}
+              <div className="bg-white bg-opacity-80 backdrop-blur-sm rounded-lg p-4 sm:p-6 mb-4 sm:mb-6 border border-amber-300 shadow-lg">
+                <h3 className="text-base sm:text-lg md:text-xl font-semibold text-amber-700 mb-2 sm:mb-3">Your Question:</h3>
+                <p className="text-sm sm:text-base md:text-lg text-gray-700 italic leading-relaxed">"{question}"</p>
+              </div>
+
+              {/* Card Meaning - Mobile Optimized */}
+              <div className="bg-white bg-opacity-80 backdrop-blur-sm rounded-lg p-4 sm:p-6 mb-4 sm:mb-6 border border-blue-300 shadow-lg">
+                <h3 className="text-base sm:text-lg md:text-xl font-semibold text-blue-700 mb-2 sm:mb-3">Card Meaning:</h3>
+                <p className="text-sm sm:text-base text-gray-700 leading-relaxed">{cardReading.cardMeaning}</p>
+              </div>
+
+              {/* Guidance - Mobile Optimized */}
+              <div className="bg-white bg-opacity-80 backdrop-blur-sm rounded-lg p-4 sm:p-6 mb-6 sm:mb-8 border border-rose-300 shadow-lg">
+                <h3 className="text-base sm:text-lg md:text-xl font-semibold text-rose-700 mb-2 sm:mb-3">Your Guidance:</h3>
+                <p className="text-sm sm:text-base text-gray-700 leading-relaxed">{cardReading.guidance}</p>
+              </div>
+
+              {/* New Reading Button - Mobile Optimized */}
+              <div className="text-center">
                 <button
-                  onClick={drawCards}
-                  disabled={isLoading}
-                  className={`px-8 py-4 rounded-full text-xl font-bold transition-all transform ${
-                    isLoading 
-                      ? 'bg-gray-600 cursor-not-allowed' 
-                      : 'bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 hover:scale-105 shadow-lg'
-                  }`}
+                  onClick={resetReading}
+                  className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold py-3 px-6 sm:px-8 rounded-full shadow-lg transform active:scale-95 transition-all duration-200 text-sm sm:text-base"
                 >
-                  <Shuffle className="inline mr-3" size={24} />
-                  {isLoading ? 'Channeling Divine Wisdom...' : 'Draw Your Sacred Cards'}
+                  New Reading ✨
                 </button>
               </div>
-            </div>
+            </>
+          )}
+        </div>
 
-            {/* Selected Cards Preview */}
-            {selectedCards.length > 0 && !showReading && (
-              <div className="mb-8">
-                <h3 className="text-2xl font-bold mb-6 text-center text-yellow-400">Your Sacred Cards</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {selectedCards.map((card, index) => {
-                    const positions = {
-                      general: ["Past/Foundation", "Present Energy", "Future Outcome"],
-                      love: ["Your Heart", "Love Energy", "Relationship Path"],
-                      career: ["Current Position", "Opportunities", "Career Outcome"],
-                      money: ["Current State", "Energy Flow", "Financial Future"]
-                    };
-                    
-                    return (
-                      <div key={card.id} className="bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-sm p-6 rounded-xl border border-purple-400/50">
-                        <div className="text-center">
-                          <div className="text-sm font-medium text-purple-300 mb-2">
-                            {positions[readingType][index]}
-                          </div>
-                          <div className="text-xl font-bold text-yellow-400 mb-2">{card.name}</div>
-                          <div className="text-sm text-purple-200">{card.suit}</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+        {/* Fixed Contact Footer - Mobile Optimized */}
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white bg-opacity-90 backdrop-blur-sm text-center py-2 sm:py-3 px-2 sm:px-4 shadow-lg">
+          <div className="text-center">
+            <p className="font-semibold text-xs sm:text-sm text-amber-700">ASTROLOGER CHANAKK GUPTA</p>
+            <div className="text-xs sm:text-sm text-gray-600">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
+                <span>📞 +91 75738 77033</span>
+                <span className="hidden sm:inline">|</span>
+                <span>📧 info.souldestiny@gmail.com</span>
               </div>
-            )}
+            </div>
           </div>
-        ) : (
-          <div className="max-w-5xl mx-auto">
-            {/* Reading Display */}
-            <div className="bg-gradient-to-br from-white/15 to-white/5 backdrop-blur-sm rounded-2xl p-8 border border-purple-400/50 mb-8">
-              <div className="mb-6">
-                <h2 className="text-3xl font-bold text-yellow-400 mb-4 text-center">
-                  Your {readingTypes[readingType].name} Reading
-                </h2>
-                
-                {/* Cards Display */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                  {selectedCards.map((card, index) => {
-                    const positions = {
-                      general: ["Past/Foundation", "Present Energy", "Future Outcome"],
-                      love: ["Your Heart", "Love Energy", "Relationship Path"],
-                      career: ["Current Position", "Opportunities", "Career Outcome"],
-                      money: ["Current State", "Energy Flow", "Financial Future"]
-                    };
-                    
-                    return (
-                      <div key={card.id} className="bg-gradient-to-br from-purple-600/30 to-pink-600/20 p-6 rounded-xl border border-purple-400/50">
-                        <div className="text-center">
-                          <div className="text-sm font-medium text-purple-300 mb-2">
-                            {positions[readingType][index]}
-                          </div>
-                          <div className="text-xl font-bold text-yellow-400 mb-2">{card.name}</div>
-                          <div className="text-sm text-purple-200 mb-3">{card.suit}</div>
-                          <div className="text-xs text-purple-300 italic">
-                            {card.meaning}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              
-              {/* Reading Text */}
-              <div className="prose prose-invert prose-lg max-w-none">
-                <div className="text-purple-100 leading-relaxed whitespace-pre-wrap">
-                  {reading}
-                </div>
-              </div>
-            </div>
+        </div>
+      </div>
+    );
+  }
 
-            {/* New Reading Button */}
-            <div className="text-center">
+  return (
+    <div className={`min-h-screen bg-gradient-to-br ${currentTheme.bg} text-gray-800 relative overflow-hidden`}>
+      <StarField />
+      
+      {/* Fixed Header - Mobile Optimized */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-white bg-opacity-90 backdrop-blur-sm shadow-lg">
+        <div className="text-center py-3 px-4">
+          <div className="flex items-center justify-center gap-2">
+            <Gem className="text-amber-600" size={20} />
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+              SOUL DESTINY TAROT
+            </h1>
+            <Gem className="text-amber-600" size={20} />
+          </div>
+          <p className="text-xs text-gray-600 mt-1">by ASTROLOGER CHANAKK GUPTA</p>
+        </div>
+      </div>
+
+      <div className="pt-20 pb-28 px-3 sm:px-4 max-w-full mx-auto relative z-10">
+        {!showCards ? (
+          /* Question Input Section - Mobile Optimized */
+          <div className="text-center max-w-2xl mx-auto mt-4 sm:mt-8">
+            <div className="bg-white bg-opacity-80 backdrop-blur-sm rounded-lg p-4 sm:p-6 md:p-8 shadow-2xl border border-amber-300">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-semibold mb-4 sm:mb-6 text-amber-700">Ask Your Question</h2>
+              <textarea
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                placeholder="What guidance do you seek today?"
+                className="w-full p-3 sm:p-4 text-sm sm:text-base md:text-lg rounded-lg bg-white bg-opacity-70 backdrop-blur-sm border border-amber-300 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+                rows="4"
+              />
               <button
-                onClick={startNewReading}
-                className="px-8 py-4 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 rounded-full font-bold text-xl transition-all transform hover:scale-105 shadow-lg"
+                onClick={handleQuestionSubmit}
+                disabled={!question.trim()}
+                className="mt-4 sm:mt-6 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 sm:px-8 rounded-full shadow-lg transform active:scale-95 transition-all duration-200 text-sm sm:text-base"
               >
-                <Sparkles className="inline mr-3" size={24} />
-                Draw New Cards
+                Reveal Cards ✨
               </button>
             </div>
           </div>
+        ) : (
+          /* Cards Selection Section - Mobile Optimized */
+          <div className="mt-4 sm:mt-8">
+            <div className="text-center mb-4 sm:mb-6 md:mb-8">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-amber-700 mb-2 sm:mb-4">Choose Your Card</h2>
+              <p className="text-sm sm:text-base text-gray-700 px-4">Trust your intuition and select the card that calls to you</p>
+            </div>
+            
+            {/* Card Grid - Mobile Responsive Layout */}
+            <div className="space-y-2 sm:space-y-1 max-w-full mx-auto overflow-x-auto">
+              {createCardRows().map((row, rowIndex) => {
+                const cardsPerRow = window.innerWidth < 640 ? 6 : 13;
+                return (
+                  <div key={rowIndex} className="flex gap-1 sm:gap-1 justify-center min-w-fit px-2 sm:px-0">
+                    {row.map((card, cardIndex) => {
+                      const globalIndex = rowIndex * cardsPerRow + cardIndex;
+                      return (
+                        <div
+                          key={globalIndex}
+                          className={`w-9 h-12 sm:w-11 sm:h-15 md:w-12 md:h-16 cursor-pointer transform transition-all duration-200 ${
+                            hoveredCard === globalIndex ? 'scale-110 z-10' : 'active:scale-95'
+                          }`}
+                          onMouseEnter={() => setHoveredCard(globalIndex)}
+                          onMouseLeave={() => setHoveredCard(null)}
+                          onTouchStart={() => setHoveredCard(globalIndex)}
+                          onTouchEnd={() => setHoveredCard(null)}
+                          onClick={() => handleCardClick(globalIndex)}
+                        >
+                          <div className="w-full h-full bg-gradient-to-br from-amber-100 to-orange-100 rounded border-2 border-amber-400 shadow-lg flex items-center justify-center relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-br from-amber-300 via-transparent to-transparent opacity-20"></div>
+                            <div className="text-amber-700">
+                              <Star size={8} className="mx-auto mb-1" />
+                              <div className="text-[8px] text-center">✨</div>
+                            </div>
+                            {hoveredCard === globalIndex && (
+                              <div className="absolute inset-0 bg-amber-400 bg-opacity-30 rounded animate-pulse"></div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
+      </div>
 
-        {/* Footer */}
-        <div className="text-center mt-16 text-purple-300">
-          <div className="max-w-2xl mx-auto">
-            <p className="text-lg mb-2">✨ Guided by Ancient Wisdom & Cosmic Energy ✨</p>
-            <p className="text-sm">
-              Professional spiritual guidance through the mystical art of tarot reading
-            </p>
-            <p className="text-sm mt-4 text-purple-400">
-              🌟 For personal consultations, connect with Astrologer Chanakk Gupta 🌟
-            </p>
+      {/* Fixed Contact Footer - Mobile Optimized */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white bg-opacity-90 backdrop-blur-sm text-center py-2 sm:py-3 px-2 sm:px-4 shadow-lg">
+        <div className="text-center">
+          <p className="font-semibold text-xs sm:text-sm text-amber-700">ASTROLOGER CHANAKK GUPTA</p>
+          <div className="text-xs sm:text-sm text-gray-600">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
+              <span>📞 +91 75738 77033</span>
+              <span className="hidden sm:inline">|</span>
+              <span>📧 info.souldestiny@gmail.com</span>
+            </div>
           </div>
         </div>
       </div>
