@@ -6,19 +6,6 @@ export default defineConfig({
   base: '/soul-destiny-tarot/',
   build: {
     outDir: 'dist',
-    assetsDir: 'assets',
-    sourcemap: false,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          icons: ['lucide-react']
-        }
-      }
-    }
-  },
-  server: {
-    port: 3000,
-    open: true
+    assetsDir: 'assets'
   }
 })
